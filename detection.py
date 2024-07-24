@@ -3,7 +3,7 @@ from imagededup.methods import CNN
 import os
 from PIL import Image
 
-img_folder = 'path/to/images'
+img_folder = r'https://github.com/KirtanTankRed/duplicate_detection/tree/main/images'
 myencoder = CNN()
 duplicates = myencoder.find_duplicates(image_dir=img_folder, min_similarity_threshold=0.70)
 
