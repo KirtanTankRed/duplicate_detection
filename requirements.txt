@@ -3,3 +3,4 @@ opencv-python==4.10.0.84
 numpy==2.0.1
 pillow==10.4.0
 imagededup==0.3.2
+lyrico-0.2.5-py2-none-any.whl
