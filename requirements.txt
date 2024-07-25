@@ -1,6 +1,6 @@
 
 streamlit==1.30.0
 opencv-python==4.10.0.84
-numpy==2.0.1
+numpy==1.26.4
 pillow==10.4.0
 git+https://github.com/idealo/imagededup.git@master#egg=imagededup
