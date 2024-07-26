@@ -147,7 +147,7 @@ import streamlit as st
 from imagededup.methods import CNN
 import cv2
 import io
-import json
+from io import BytesIO
 
 # Initialize the CNN encoder
 myencoder = CNN()
@@ -252,9 +252,10 @@ if uploaded_files:
 # Detect duplicates
 if st.button("Detect Duplicates"):
     if uploaded_images:
-        duplicates = myencoder.find_duplicates(image_dir=image_dict, min_similarity_threshold=0.70)
-        duplicate_groups = group_duplicates(duplicates)
-        st.session_state['duplicate_groups'] = duplicate_groups
+        with st.spinner("Detecting duplicates..."):
+            duplicates = myencoder.find_duplicates(image_dir=image_dict, min_similarity_threshold=0.70)
+            duplicate_groups = group_duplicates(duplicates)
+            st.session_state['duplicate_groups'] = duplicate_groups
         st.success("Duplicate detection completed.")
     else:
         st.write("No images to process.")
