@@ -147,6 +147,7 @@ import streamlit as st
 from imagededup.methods import CNN
 import cv2
 import io
+import json
 
 # Initialize the CNN encoder
 myencoder = CNN()
@@ -233,36 +234,36 @@ def clear_img_folder():
 st.title("Duplicate Image Detection and Deletion")
 
 st.sidebar.title("Options")
-option = st.sidebar.selectbox("Choose a method", ("Manual Deletion", "Auto Suggestion"))
-
 if st.sidebar.button("Clear Image Folder"):
     uploaded_images = clear_img_folder()
 
-# File uploader
+# Step 1: File uploader and duplicate detection
 uploaded_files = st.file_uploader("Upload images", accept_multiple_files=True, type=["jpg", "jpeg", "png"])
 
 uploaded_images = []
+image_dict = {}
 if uploaded_files:
     for uploaded_file in uploaded_files:
         image = Image.open(uploaded_file)
         uploaded_images.append(image)
+        image_dict[uploaded_file.name] = image
         st.success(f"Uploaded {uploaded_file.name}")
 
-if option == "Manual Deletion":
+# Detect duplicates
+if st.button("Detect Duplicates"):
     if uploaded_images:
-        # Simulating image directory processing for duplicates detection
-        virtual_img_folder = {str(idx): img for idx, img in enumerate(uploaded_images)}
-        duplicates = myencoder.find_duplicates(virtual_img_folder, min_similarity_threshold=0.70)
+        duplicates = myencoder.find_duplicates(image_dir=image_dict, min_similarity_threshold=0.70)
         duplicate_groups = group_duplicates(duplicates)
-        display_images_for_deletion(duplicate_groups)
+        st.session_state['duplicate_groups'] = duplicate_groups
+        st.success("Duplicate detection completed.")
     else:
         st.write("No images to process.")
-elif option == "Auto Suggestion":
-    if uploaded_images:
-        # Simulating image directory processing for duplicates detection
-        virtual_img_folder = {str(idx): img for idx, img in enumerate(uploaded_images)}
-        duplicates = myencoder.find_duplicates(virtual_img_folder, min_similarity_threshold=0.70)
-        duplicate_groups = group_duplicates(duplicates)
-        auto_suggest_best_image(duplicate_groups)
-    else:
-        st.write("No images to process.")
+
+# Step 2: Manual Deletion or Auto Suggestion
+if 'duplicate_groups' in st.session_state:
+    option = st.sidebar.selectbox("Choose a method", ("Manual Deletion", "Auto Suggestion"))
+
+    if option == "Manual Deletion":
+        display_images_for_deletion(st.session_state['duplicate_groups'])
+    elif option == "Auto Suggestion":
+        auto_suggest_best_image(st.session_state['duplicate_groups'])
