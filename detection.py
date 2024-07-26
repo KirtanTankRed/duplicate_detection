@@ -1,53 +1,45 @@
-# import os
-# import cv2
+
+
 # import numpy as np
-# from PIL import Image, ImageStat, ImageFilter
+# from PIL import Image
 # import streamlit as st
 # from imagededup.methods import CNN
-
-# # Set the image folder path
-# img_folder = 'https://github.com/KirtanTankRed/duplicate_detection/tree/main/images'
+# import cv2
+# import os
+# import tempfile
+# from io import BytesIO
 
 # # Initialize the CNN encoder
 # myencoder = CNN()
-
-# # Find duplicates
-# duplicates = myencoder.find_duplicates(image_dir=img_folder, min_similarity_threshold=0.70)
 
 # # Function to group duplicates into nested lists
 # def group_duplicates(duplicates_dict):
 #     seen = set()
 #     groups = []
-
 #     for key, values in duplicates_dict.items():
 #         if key not in seen:
 #             group = set(values) | {key}
 #             groups.append(list(group))
 #             seen.update(group)
-    
 #     return groups
 
-# # Group duplicates
-# duplicate_groups = group_duplicates(duplicates)
-
 # # Function to measure parameters
-# def measure_parameters(image_path):
-#     # Open the image
-#     image = Image.open(image_path)
+# def measure_parameters(image):
+#     np_image = np.array(image)
     
 #     # Measure brightness
-#     brightness = np.mean(image)
+#     brightness = np.mean(np_image)
     
 #     # Measure contrast
-#     contrast = np.std(image)
+#     contrast = np.std(np_image)
     
 #     # Measure sharpness
-#     laplacian = cv2.Laplacian(np.array(image), cv2.CV_64F)
+#     laplacian = cv2.Laplacian(np_image, cv2.CV_64F)
 #     sharpness = np.var(laplacian)
     
 #     # Measure noise (blurness)
-#     blurred_image = cv2.GaussianBlur(np.array(image), (5, 5), 0)
-#     difference = cv2.absdiff(np.array(image), blurred_image)
+#     blurred_image = cv2.GaussianBlur(np_image, (5, 5), 0)
+#     difference = cv2.absdiff(np_image, blurred_image)
 #     blurness = np.std(difference)
     
 #     return blurness, brightness, contrast, sharpness
@@ -56,89 +48,93 @@
 # def select_best_image(images):
 #     best_image = None
 #     best_score = -1
-
 #     for img in images:
-#         img_path = os.path.join(img_folder, img)
-#         blurness, brightness, contrast, sharpness = measure_parameters(img_path)
-        
-#         # Score calculation (weights can be adjusted)
+#         blurness, brightness, contrast, sharpness = measure_parameters(img)
 #         score = (brightness * 0.3) + (contrast * 0.3) + (sharpness * 0.3) - (blurness * 0.1)
-        
 #         if score > best_score:
 #             best_score = score
 #             best_image = img
-
 #     return best_image
 
 # # Streamlit app for displaying and deleting images
-# def display_images_for_deletion(duplicate_groups):
+# def display_images_for_deletion(duplicate_groups, img_dir):
 #     for group in duplicate_groups:
 #         st.write(f"Group: {group}")
 #         cols = st.columns(len(group))
 #         selected_images = []
-
-#         for idx, img in enumerate(group):
-#             img_path = os.path.join(img_folder, img)
+#         for idx, img_name in enumerate(group):
+#             img_path = os.path.join(img_dir, img_name)
 #             image = Image.open(img_path)
-#             cols[idx].image(image, caption=img, use_column_width=True)
-#             if cols[idx].button(f"Delete {img}", key=img):
-#                 selected_images.append(img_path)
-#                 st.write(f"Selected for deletion: {img}")
-
-#         # Move or delete the selected images
-#         if st.button(f"Confirm deletion for group {group}", key=str(group)):
-#             for img_path in selected_images:
-#                 if os.path.exists(img_path):
-#                     os.remove(img_path)
-#                     st.write(f"Deleted: {img_path}")
+#             cols[idx].image(image, use_column_width=True)
+#             if cols[idx].button(f"Delete", key=f"delete_{group}_{idx}"):
+#                 selected_images.append(img_name)
+#                 st.write(f"Selected for deletion: {img_name}")
+#         if st.button(f"Confirm deletion for group {group}", key=f"confirm_{group}"):
+#             for img_name in selected_images:
+#                 os.remove(os.path.join(img_dir, img_name))
+#                 st.write(f"Deleted: {img_name}")
 
 # # Function for auto-suggesting the best image
-# def auto_suggest_best_image(duplicate_groups):
+# def auto_suggest_best_image(duplicate_groups, img_dir):
 #     for group in duplicate_groups:
-#         best_image = select_best_image(group)
-#         st.write(f"Suggested best image: {best_image} from group {group}")
-
+#         images = [Image.open(os.path.join(img_dir, img_name)) for img_name in group]
+#         best_image = select_best_image(images)
+#         best_image_name = group[images.index(best_image)]
+#         st.write(f"Suggested best image from group")
 #         cols = st.columns(len(group))
-#         for idx, img in enumerate(group):
-#             img_path = os.path.join(img_folder, img)
+#         for idx, img_name in enumerate(group):
+#             img_path = os.path.join(img_dir, img_name)
 #             image = Image.open(img_path)
-#             cols[idx].image(image, caption=img, use_column_width=True)
+#             cols[idx].image(image, use_column_width=True)
+#         if st.button(f"Confirm auto-suggestion for group {group}", key=f"auto_confirm_{group}"):
+#             for img_name in group:
+#                 if img_name != best_image_name:
+#                     os.remove(os.path.join(img_dir, img_name))
+#                     st.write(f"Deleted: {img_name}")
 
-#         if st.button(f"Confirm auto-suggestion for group {group}", key=str(group) + "auto"):
-#             for img in group:
-#                 if img != best_image:
-#                     img_path = os.path.join(img_folder, img)
-#                     if os.path.exists(img_path):
-#                         os.remove(img_path)
-#                         st.write(f"Deleted: {img_path}")
-
-# # Function to clear the image folder
-# def clear_img_folder(folder):
-#     for filename in os.listdir(folder):
-#         file_path = os.path.join(folder, filename)
-#         try:
-#             if os.path.isfile(file_path) or os.path.islink(file_path):
-#                 os.unlink(file_path)
-#                 st.write(f"Deleted: {file_path}")
-#             elif os.path.isdir(file_path):
-#                 shutil.rmtree(file_path)
-#                 st.write(f"Deleted directory: {file_path}")
-#         except Exception as e:
-#             st.write(f'Failed to delete {file_path}. Reason: {e}')
+# # Function to clear the image folder (In-memory this case)
+# def clear_img_folder(img_dir):
+#     for file in os.listdir(img_dir):
+#         os.remove(os.path.join(img_dir, file))
+#     st.write("Image folder cleared.")
 
 # # Streamlit UI
 # st.title("Duplicate Image Detection and Deletion")
 
 # st.sidebar.title("Options")
-# option = st.sidebar.selectbox("Choose a method", ("Manual Deletion", "Auto Suggestion"))
-
+# img_dir = tempfile.mkdtemp()
 # if st.sidebar.button("Clear Image Folder"):
-#     clear_img_folder(img_folder)
+#     clear_img_folder(img_dir)
 
-# if option == "Manual Deletion":
-#     display_images_for_deletion(duplicate_groups)
-# elif option == "Auto Suggestion":
-#     auto_suggest_best_image(duplicate_groups)
+# # Step 1: File uploader and duplicate detection
+# uploaded_files = st.file_uploader("Upload images", accept_multiple_files=True, type=["jpg", "jpeg", "png"])
+
+# if uploaded_files:
+#     for uploaded_file in uploaded_files:
+#         file_path = os.path.join(img_dir, uploaded_file.name)
+#         with open(file_path, "wb") as f:
+#             f.write(uploaded_file.getbuffer())
+#         st.success(f"Uploaded {uploaded_file.name}")
+
+# # Detect duplicates
+# if st.button("Detect Duplicates"):
+#     if uploaded_files:
+#         with st.spinner("Detecting duplicates..."):
+#             duplicates = myencoder.find_duplicates(image_dir=img_dir, min_similarity_threshold=0.70)
+#             duplicate_groups = group_duplicates(duplicates)
+#             st.session_state['duplicate_groups'] = duplicate_groups
+#         st.success("Duplicate detection completed.")
+#     else:
+#         st.write("No images to process.")
+
+# # Step 2: Manual Deletion or Auto Suggestion
+# if 'duplicate_groups' in st.session_state:
+#     option = st.sidebar.selectbox("Choose a method", ("Manual Deletion", "Auto Suggestion"))
+
+#     if option == "Manual Deletion":
+#         display_images_for_deletion(st.session_state['duplicate_groups'], img_dir)
+#     elif option == "Auto Suggestion":
+#         auto_suggest_best_image(st.session_state['duplicate_groups'], img_dir)
 
 import numpy as np
 from PIL import Image
@@ -159,7 +155,8 @@ def group_duplicates(duplicates_dict):
     for key, values in duplicates_dict.items():
         if key not in seen:
             group = set(values) | {key}
-            groups.append(list(group))
+            if len(group) > 1:  # Ignore single images with no duplicates
+                groups.append(list(group))
             seen.update(group)
     return groups
 
@@ -225,18 +222,17 @@ def auto_suggest_best_image(duplicate_groups, img_dir):
         for idx, img_name in enumerate(group):
             img_path = os.path.join(img_dir, img_name)
             image = Image.open(img_path)
-            cols[idx].image(image, use_column_width=True)
-        if st.button(f"Confirm auto-suggestion for group {group}", key=f"auto_confirm_{group}"):
-            for img_name in group:
-                if img_name != best_image_name:
-                    os.remove(os.path.join(img_dir, img_name))
-                    st.write(f"Deleted: {img_name}")
+            if img_name == best_image_name:
+                cols[idx].image(image, use_column_width=True, caption="Best Image")
+            else:
+                cols[idx].image(image, use_column_width=True)
 
 # Function to clear the image folder (In-memory this case)
 def clear_img_folder(img_dir):
     for file in os.listdir(img_dir):
         os.remove(os.path.join(img_dir, file))
     st.write("Image folder cleared.")
+    st.session_state['uploaded_files'] = []
 
 # Streamlit UI
 st.title("Duplicate Image Detection and Deletion")
@@ -247,6 +243,9 @@ if st.sidebar.button("Clear Image Folder"):
     clear_img_folder(img_dir)
 
 # Step 1: File uploader and duplicate detection
+if 'uploaded_files' not in st.session_state:
+    st.session_state['uploaded_files'] = []
+
 uploaded_files = st.file_uploader("Upload images", accept_multiple_files=True, type=["jpg", "jpeg", "png"])
 
 if uploaded_files:
@@ -255,10 +254,11 @@ if uploaded_files:
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
         st.success(f"Uploaded {uploaded_file.name}")
+        st.session_state['uploaded_files'].append(uploaded_file)
 
 # Detect duplicates
 if st.button("Detect Duplicates"):
-    if uploaded_files:
+    if st.session_state['uploaded_files']:
         with st.spinner("Detecting duplicates..."):
             duplicates = myencoder.find_duplicates(image_dir=img_dir, min_similarity_threshold=0.70)
             duplicate_groups = group_duplicates(duplicates)
