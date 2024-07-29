@@ -302,4 +302,3 @@ if 'duplicate_groups' in st.session_state:
             auto_suggest_best_image(st.session_state['duplicate_groups'], img_dir)
         except Exception as e:
             st.error(f"Error during auto suggestion: {e}")
-)
