@@ -226,6 +226,12 @@ def auto_suggest_best_image(duplicate_groups, img_dir):
                 cols[idx].image(image, use_column_width=True, caption="Best Image")
             else:
                 cols[idx].image(image, use_column_width=True)
+        # Button to delete non-best images
+        if st.button(f"Delete non-best images in group {group}", key=f"delete_non_best_{group}"):
+            for img_name in group:
+                if img_name != best_image_name:
+                    os.remove(os.path.join(img_dir, img_name))
+                    st.write(f"Deleted: {img_name}")
 
 # Function to clear the image folder (In-memory this case)
 def clear_img_folder(img_dir):
