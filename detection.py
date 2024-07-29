@@ -137,7 +137,7 @@
 #         auto_suggest_best_image(st.session_state['duplicate_groups'], img_dir)
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 import streamlit as st
 from imagededup.methods import CNN
 import cv2
@@ -208,8 +208,12 @@ def display_images_for_deletion(duplicate_groups, img_dir):
                 st.write(f"Selected for deletion: {img_name}")
         if st.button(f"Confirm deletion for group {group}", key=f"confirm_{group}"):
             for img_name in selected_images:
-                os.remove(os.path.join(img_dir, img_name))
-                st.write(f"Deleted: {img_name}")
+                img_path = os.path.join(img_dir, img_name)
+                image = Image.open(img_path)
+                grayscale_image = ImageOps.grayscale(image)
+                grayscale_image.save(img_path)
+                st.image(grayscale_image, use_column_width=True)
+                st.write(f"Deleted (grayscale): {img_name}")
 
 # Function for auto-suggesting the best image
 def auto_suggest_best_image(duplicate_groups, img_dir):
@@ -230,8 +234,15 @@ def auto_suggest_best_image(duplicate_groups, img_dir):
         if st.button(f"Delete non-best images in group {group}", key=f"delete_non_best_{group}"):
             for img_name in group:
                 if img_name != best_image_name:
-                    os.remove(os.path.join(img_dir, img_name))
-                    st.write(f"Deleted: {img_name}")
+                    img_path = os.path.join(img_dir, img_name)
+                    image = Image.open(img_path)
+                    grayscale_image = ImageOps.grayscale(image)
+                    grayscale_image.save(img_path)
+                    st.image(grayscale_image, use_column_width=True)
+                    st.write(f"Deleted (grayscale): {img_name}")
+            st.write(f"Best Image: {best_image_name}")
+            best_img_path = os.path.join(img_dir, best_image_name)
+            st.image(best_img_path, use_column_width=True, caption="Best Image (not deleted)")
 
 # Function to clear the image folder (In-memory this case)
 def clear_img_folder(img_dir):
