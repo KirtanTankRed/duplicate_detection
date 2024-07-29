@@ -212,8 +212,11 @@ def display_images_for_deletion(duplicate_groups, img_dir):
                 image = Image.open(img_path)
                 grayscale_image = ImageOps.grayscale(image)
                 grayscale_image.save(img_path)
-                st.image(grayscale_image, use_column_width=True)
-                st.write(f"Deleted (grayscale): {img_name}")
+            # Redisplay the images in the group
+            for idx, img_name in enumerate(group):
+                img_path = os.path.join(img_dir, img_name)
+                image = Image.open(img_path)
+                cols[idx].image(image, use_column_width=True)
 
 # Function for auto-suggesting the best image
 def auto_suggest_best_image(duplicate_groups, img_dir):
@@ -238,11 +241,14 @@ def auto_suggest_best_image(duplicate_groups, img_dir):
                     image = Image.open(img_path)
                     grayscale_image = ImageOps.grayscale(image)
                     grayscale_image.save(img_path)
-                    st.image(grayscale_image, use_column_width=True)
-                    st.write(f"Deleted (grayscale): {img_name}")
-            st.write(f"Best Image: {best_image_name}")
-            best_img_path = os.path.join(img_dir, best_image_name)
-            st.image(best_img_path, use_column_width=True, caption="Best Image (not deleted)")
+            # Redisplay the images in the group
+            for idx, img_name in enumerate(group):
+                img_path = os.path.join(img_dir, img_name)
+                image = Image.open(img_path)
+                if img_name == best_image_name:
+                    cols[idx].image(image, use_column_width=True, caption="Best Image")
+                else:
+                    cols[idx].image(image, use_column_width=True)
 
 # Function to clear the image folder (In-memory this case)
 def clear_img_folder(img_dir):
