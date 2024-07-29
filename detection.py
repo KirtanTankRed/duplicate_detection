@@ -195,6 +195,7 @@ def select_best_image(images):
 
 # Streamlit app for displaying and deleting images
 def display_images_for_deletion(duplicate_groups, img_dir):
+    displayed_images = {}
     for group in duplicate_groups:
         st.write(f"Group: {group}")
         cols = st.columns(len(group))
@@ -202,7 +203,7 @@ def display_images_for_deletion(duplicate_groups, img_dir):
         for idx, img_name in enumerate(group):
             img_path = os.path.join(img_dir, img_name)
             image = Image.open(img_path)
-            cols[idx].image(image, use_column_width=True)
+            displayed_images[img_name] = cols[idx].image(image, use_column_width=True)
             if cols[idx].button(f"Delete", key=f"delete_{group}_{idx}"):
                 selected_images.append(img_name)
                 st.write(f"Selected for deletion: {img_name}")
@@ -212,14 +213,11 @@ def display_images_for_deletion(duplicate_groups, img_dir):
                 image = Image.open(img_path)
                 grayscale_image = ImageOps.grayscale(image)
                 grayscale_image.save(img_path)
-            # Redisplay the images in the group
-            for idx, img_name in enumerate(group):
-                img_path = os.path.join(img_dir, img_name)
-                image = Image.open(img_path)
-                cols[idx].image(image, use_column_width=True)
+                displayed_images[img_name].image(grayscale_image, use_column_width=True)
 
 # Function for auto-suggesting the best image
 def auto_suggest_best_image(duplicate_groups, img_dir):
+    displayed_images = {}
     for group in duplicate_groups:
         images = [Image.open(os.path.join(img_dir, img_name)) for img_name in group]
         best_image = select_best_image(images)
@@ -229,10 +227,11 @@ def auto_suggest_best_image(duplicate_groups, img_dir):
         for idx, img_name in enumerate(group):
             img_path = os.path.join(img_dir, img_name)
             image = Image.open(img_path)
+            displayed_images[img_name] = cols[idx].image(image, use_column_width=True)
             if img_name == best_image_name:
-                cols[idx].image(image, use_column_width=True, caption="Best Image")
+                displayed_images[img_name].image(image, use_column_width=True, caption="Best Image")
             else:
-                cols[idx].image(image, use_column_width=True)
+                displayed_images[img_name].image(image, use_column_width=True)
         # Button to delete non-best images
         if st.button(f"Delete non-best images in group {group}", key=f"delete_non_best_{group}"):
             for img_name in group:
@@ -241,6 +240,7 @@ def auto_suggest_best_image(duplicate_groups, img_dir):
                     image = Image.open(img_path)
                     grayscale_image = ImageOps.grayscale(image)
                     grayscale_image.save(img_path)
+                    displayed_images[img_name].image(grayscale_image, use_column_width=True)
             # Redisplay the images in the group
             for idx, img_name in enumerate(group):
                 img_path = os.path.join(img_dir, img_name)
@@ -298,3 +298,4 @@ if 'duplicate_groups' in st.session_state:
         display_images_for_deletion(st.session_state['duplicate_groups'], img_dir)
     elif option == "Auto Suggestion":
         auto_suggest_best_image(st.session_state['duplicate_groups'], img_dir)
+
