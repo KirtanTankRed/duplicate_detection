@@ -202,46 +202,58 @@ def display_images_for_deletion(duplicate_groups, img_dir):
         selected_images = []
         for idx, img_name in enumerate(group):
             img_path = os.path.join(img_dir, img_name)
-            image = Image.open(img_path)
-            displayed_images[img_name] = cols[idx].image(image, use_column_width=True)
-            if cols[idx].button(f"Delete", key=f"delete_{group}_{idx}"):
-                selected_images.append(img_name)
-                st.write(f"Selected for deletion: {img_name}")
+            if os.path.exists(img_path):  # Check if file exists
+                image = Image.open(img_path)
+                displayed_images[img_name] = cols[idx].image(image, use_column_width=True)
+                if cols[idx].button(f"Delete", key=f"delete_{group}_{idx}"):
+                    selected_images.append(img_name)
+                    st.write(f"Selected for deletion: {img_name}")
+            else:
+                st.error(f"File not found: {img_name}")
         if st.button(f"Confirm deletion for group {group}", key=f"confirm_{group}"):
             for img_name in selected_images:
                 img_path = os.path.join(img_dir, img_name)
-                image = Image.open(img_path)
-                grayscale_image = ImageOps.grayscale(image)
-                grayscale_image.save(img_path)
-                displayed_images[img_name].image(grayscale_image, use_column_width=True)
+                if os.path.exists(img_path):  # Check if file exists before deletion
+                    image = Image.open(img_path)
+                    grayscale_image = ImageOps.grayscale(image)
+                    grayscale_image.save(img_path)
+                    displayed_images[img_name].image(grayscale_image, use_column_width=True)
 
 # Function for auto-suggesting the best image
 def auto_suggest_best_image(duplicate_groups, img_dir):
     displayed_images = {}
     for group in duplicate_groups:
-        images = [Image.open(os.path.join(img_dir, img_name)) for img_name in group]
-        best_image = select_best_image(images)
-        best_image_name = group[images.index(best_image)]
-        st.write(f"Suggested best image from group")
-        cols = st.columns(len(group))
-        for idx, img_name in enumerate(group):
+        images = []
+        for img_name in group:
             img_path = os.path.join(img_dir, img_name)
-            image = Image.open(img_path)
-            displayed_images[img_name] = cols[idx].image(image, use_column_width=True)
-            if img_name == best_image_name:
-                displayed_images[img_name].image(image, use_column_width=True, caption="Best Image")
+            if os.path.exists(img_path):  # Check if file exists
+                images.append(Image.open(img_path))
             else:
-                displayed_images[img_name].image(image, use_column_width=True)
-        # Button to delete non-best images
-        if st.button(f"Delete non-best images in group {group}", key=f"delete_non_best_{group}"):
-            for img_name in group:
-                if img_name != best_image_name:
-                    img_path = os.path.join(img_dir, img_name)
-                    if os.path.exists(img_path):
-                        image = Image.open(img_path)
-                        grayscale_image = ImageOps.grayscale(image)
-                        grayscale_image.save(img_path)
-                        displayed_images[img_name].image(grayscale_image, use_column_width=True)
+                st.error(f"File not found: {img_name}")
+        if images:
+            best_image = select_best_image(images)
+            best_image_name = group[images.index(best_image)]
+            st.write(f"Suggested best image from group")
+            cols = st.columns(len(group))
+            for idx, img_name in enumerate(group):
+                img_path = os.path.join(img_dir, img_name)
+                if os.path.exists(img_path):  # Check if file exists
+                    image = Image.open(img_path)
+                    displayed_images[img_name] = cols[idx].image(image, use_column_width=True)
+                    if img_name == best_image_name:
+                        displayed_images[img_name].image(image, use_column_width=True, caption="Best Image")
+                    else:
+                        displayed_images[img_name].image(image, use_column_width=True)
+            # Button to delete non-best images
+            if st.button(f"Delete non-best images in group {group}", key=f"delete_non_best_{group}"):
+                for img_name in group:
+                    if img_name != best_image_name:
+                        img_path = os.path.join(img_dir, img_name)
+                        if os.path.exists(img_path):  # Check if file exists before deletion
+                            image = Image.open(img_path)
+                            grayscale_image = ImageOps.grayscale(image)
+                            grayscale_image.save(img_path)
+                            displayed_images[img_name].image(grayscale_image, use_column_width=True)
 
 # Function to clear the image folder (In-memory this case)
 def clear_img_folder(img_dir):
@@ -254,6 +266,7 @@ def clear_img_folder(img_dir):
             st.write(f"Error deleting file {file_path}: {e}")
     st.write("Image folder cleared.")
     st.session_state['uploaded_files'] = []
+    st.session_state['duplicate_groups'] = []
 
 # Streamlit UI
 st.title("Duplicate Image Detection and Deletion")
