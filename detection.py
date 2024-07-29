@@ -237,15 +237,21 @@ def auto_suggest_best_image(duplicate_groups, img_dir):
             for img_name in group:
                 if img_name != best_image_name:
                     img_path = os.path.join(img_dir, img_name)
-                    image = Image.open(img_path)
-                    grayscale_image = ImageOps.grayscale(image)
-                    grayscale_image.save(img_path)
-                    displayed_images[img_name].image(grayscale_image, use_column_width=True)
+                    if os.path.exists(img_path):
+                        image = Image.open(img_path)
+                        grayscale_image = ImageOps.grayscale(image)
+                        grayscale_image.save(img_path)
+                        displayed_images[img_name].image(grayscale_image, use_column_width=True)
 
 # Function to clear the image folder (In-memory this case)
 def clear_img_folder(img_dir):
     for file in os.listdir(img_dir):
-        os.remove(os.path.join(img_dir, file))
+        file_path = os.path.join(img_dir, file)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        except Exception as e:
+            st.write(f"Error deleting file {file_path}: {e}")
     st.write("Image folder cleared.")
     st.session_state['uploaded_files'] = []
 
@@ -274,11 +280,14 @@ if uploaded_files:
 # Detect duplicates
 if st.button("Detect Duplicates"):
     if st.session_state['uploaded_files']:
-        with st.spinner("Detecting duplicates..."):
-            duplicates = myencoder.find_duplicates(image_dir=img_dir, min_similarity_threshold=0.70)
-            duplicate_groups = group_duplicates(duplicates)
-            st.session_state['duplicate_groups'] = duplicate_groups
-        st.success("Duplicate detection completed.")
+        try:
+            with st.spinner("Detecting duplicates..."):
+                duplicates = myencoder.find_duplicates(image_dir=img_dir, min_similarity_threshold=0.70)
+                duplicate_groups = group_duplicates(duplicates)
+                st.session_state['duplicate_groups'] = duplicate_groups
+            st.success("Duplicate detection completed.")
+        except Exception as e:
+            st.error(f"Error during duplicate detection: {e}")
     else:
         st.write("No images to process.")
 
@@ -289,4 +298,8 @@ if 'duplicate_groups' in st.session_state:
     if option == "Manual Deletion":
         display_images_for_deletion(st.session_state['duplicate_groups'], img_dir)
     elif option == "Auto Suggestion":
-        auto_suggest_best_image(st.session_state['duplicate_groups'], img_dir)
+        try:
+            auto_suggest_best_image(st.session_state['duplicate_groups'], img_dir)
+        except Exception as e:
+            st.error(f"Error during auto suggestion: {e}")
+)
