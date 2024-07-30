@@ -295,7 +295,7 @@ if st.button("Detect Duplicates"):
     if st.session_state['uploaded_files']:
         try:
             with st.spinner("Detecting duplicates..."):
-                duplicates = myencoder.find_duplicates(image_dir=img_dir, min_similarity_threshold=0.90)
+                duplicates = myencoder.find_duplicates(image_dir=img_dir, min_similarity_threshold=0.85)
                 duplicate_groups = group_duplicates(duplicates)
                 st.session_state['duplicate_groups'] = duplicate_groups
             st.success("Duplicate detection completed.")
