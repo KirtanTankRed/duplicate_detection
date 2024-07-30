@@ -298,7 +298,10 @@ if st.button("Detect Duplicates"):
                 duplicates = myencoder.find_duplicates(image_dir=img_dir, min_similarity_threshold=0.90)
                 duplicate_groups = group_duplicates(duplicates)
                 st.session_state['duplicate_groups'] = duplicate_groups
-            st.success("Duplicate detection completed.")
+                if not duplicate_groups:
+                    st.write("No duplicate images detected.")
+                else:
+                    st.success("Duplicate detection completed.")
         except Exception as e:
             st.error(f"Error during duplicate detection: {e}")
     else:
@@ -315,3 +318,4 @@ if 'duplicate_groups' in st.session_state:
             auto_suggest_best_image(st.session_state['duplicate_groups'], img_dir)
         except Exception as e:
             st.error(f"Error during auto suggestion: {e}")
+
